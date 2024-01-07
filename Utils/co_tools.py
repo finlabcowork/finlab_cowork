@@ -34,7 +34,11 @@ def co_get(dataset):
         load_prem(path,dataset)
         
         
-def co_event_analysis(buy,vol):
+def co_event_analysis_simple(buy,vol):
+    """
+    正確做法應該是要追蹤符合條件的股票未來每日的報酬率變化,但較為麻煩且耗費效能
+    改為用買入之後,使用finlab的回測套件隨機出場,並繪出持股持時間與報酬分布圖,僅限於樣本數較多之事件
+    """
     sell = (vol%23 ==0)
     position = buy.hold_until(sell)
     report = sim(position , resample="D", upload=False, position_limit=1/3, fee_ratio=0,tax_ratio=0, trade_at_price='open')
@@ -47,3 +51,5 @@ def co_event_analysis(buy,vol):
     ##繪圖
     fig = px.scatter(report_trades_groupby, x="period", y="return",color='return',trendline="lowess")
     fig.show()
+    
+def co_event_analysis(buy,vol):
