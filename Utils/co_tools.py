@@ -9,9 +9,38 @@ import tqdm
 import numpy as np 
 import pandas as pd
 from finlab.dataframe import FinlabDataFrame
+import cufflinks as cf
 
 path = "D:/trade_data/finlab_db_m/"
 
+
+"""
+程式碼傷眼滲入
+"""
+
+#資料加載------------------------------------------------------------------------------------------------          
+
+def often_use_list():
+    data_set_list = ["price:收盤價",\
+                 "dividend_tse:最近一次申報每股 (單位)淨值",\
+                 "price_earning_ratio:股價淨值比",\
+                 'fundamental_features:營業利益率',\
+                 "monthly_revenue:當月營收",\
+                 "monthly_revenue:上月營收",\
+                 "monthly_revenue:去年當月營收",\
+                 "financial_statement:每股盈餘",\
+                 "price:成交股數",\
+                 "financial_statement:股本",\
+                 "etl:market_value",\
+                 "financial_statement:投資活動之淨現金流入_流出",\
+                 "financial_statement:營業活動之淨現金流入_流出",\
+                 "fundamental_features:經常稅後淨利",\
+                 "financial_statement:股東權益總額",\
+                 "fundamental_features:營業利益成長率",\
+                 "financial_statement:研究發展費",\
+                 
+                ]
+    return data_set_list
 
 def load_cloud_save(path:str, dataset:str) :
     dataset_df = data.get(dataset)
@@ -47,7 +76,7 @@ def co_get(dataset):
         
         
         
-             
+#因子分析------------------------------------------------------------------------------------------------              
         
 def co_event_analysis_real_trade(buy,p=0.07):
     """
@@ -148,28 +177,89 @@ def co_event_analysis(buy:"dataframe"):
     fig3.show()
     return accum_ret_df_re
 
+#交易紀錄視覺化------------------------------------------------------------------------------------------------ 
+"""
+#步驟
+1.拿全部kbar,資料量大,只加載1次,分開做
+2.拿取總交易紀錄,並觀察要查詢哪一筆
+3.選取指定股票的kbar
+4.選取指定股票交易紀錄
+5.印出指定的股票所有交易紀錄(指定股票可能成交不只一次)
 
 
+目前無法出場的交易紀錄會抱錯,待處理
+
+"""
 
 
-def often_use_list():
-    data_set_list = ["price:收盤價",\
-                 "dividend_tse:最近一次申報每股 (單位)淨值",\
-                 "price_earning_ratio:股價淨值比",\
-                 'fundamental_features:營業利益率',\
-                 "monthly_revenue:當月營收",\
-                 "monthly_revenue:上月營收",\
-                 "monthly_revenue:去年當月營收",\
-                 "financial_statement:每股盈餘",\
-                 "price:成交股數",\
-                 "financial_statement:股本",\
-                 "etl:market_value",\
-                 "financial_statement:投資活動之淨現金流入_流出",\
-                 "financial_statement:營業活動之淨現金流入_流出",\
-                 "fundamental_features:經常稅後淨利",\
-                 "financial_statement:股東權益總額",\
-                 "fundamental_features:營業利益成長率",\
-                 "financial_statement:研究發展費",\
-                 
-                ]
-    return data_set_list
+def co_get_all_kbar():
+    """
+    把調整後的每日open,high,low,close抓下來,組成kbar df
+    """
+    adj_open = co_get('etl:adj_open')
+    adj_high = co_get('etl:adj_high')
+    adj_low = co_get('etl:adj_low')
+    adj_close = co_get('etl:adj_close')
+    vol = co_get('price:成交股數')/1000
+    kbar_df= pd.concat([adj_open,adj_high,adj_low,adj_close,vol],axis=1)
+    return kbar_df
+
+def co_get_stock_kbar(stock_name,kbar_df):
+    stock_kbar = kbar_df[stock_name] # 選出指定的股票
+    stock_kbar.columns = ["open", "high", "low","close","volume"] # 調整欄位名稱至cf所需
+    stock_kbar = stock_kbar.dropna() # 若有NAN,則去除該列
+    return stock_kbar
+
+def get_stock_trades(stock_name,all_trades):
+    stock_trades = all_trades[all_trades["stock_id"].str.contains(stock_name)]
+    return stock_trades
+
+# def co_get_stock_kbar_range(stock_trade,day_range=100):
+#     #抓出進出場時間
+#     entry_date = stock_trades.iat[0,1]
+#     exit_date = stock_trades.iat[0,2]
+#     #進出場區間往外擴張day_range = 300天
+   
+#     entry_date_range = entry_date-pd.Timedelta(days = day_range)
+#     exit_date_range = entry_date+pd.Timedelta(days = day_range)
+#     #節選出想要印出的股票區間
+
+#     stock_kbar_range = pd.DataFrame(stock_kbar[entry_date_range.strftime('%Y-%m-%d'):exit_date_range.strftime('%Y-%m-%d')])
+#     return stock_kbar_range, entry_date.strftime('%Y-%m-%d') , exit_date.strftime('%Y-%m-%d')
+
+
+def co_plot_trade_fig(stock_name,stock_trades,stock_kbar,day_range):
+    """
+    把該股票交易紀錄依序印出
+    """
+    cf.set_config_file(theme='pearl',sharing='public',offline=True)# 設定cf
+    for i in range(stock_trades.shape[0]):
+        stock_trade = stock_trades.iloc[i:i+1]
+        entry_date = stock_trade.iat[0,1]
+        exit_date = stock_trade.iat[0,2]
+
+        #進出場區間往左擴張day_range,往右擴張day_range/3(進場前的資訊比較重要)
+        entry_date_range = entry_date-pd.Timedelta(days = day_range)
+        exit_date_range = entry_date+pd.Timedelta(days = day_range/3)
+
+        #節選出想要印出的股票區間
+        stock_kbar_range = pd.DataFrame(stock_kbar[entry_date_range.strftime('%Y-%m-%d'):exit_date_range.strftime('%Y-%m-%d')])
+
+        #將entry_date與exit_date從timestamp改成str以符合cf格式
+        entry_date = entry_date.strftime('%Y-%m-%d')
+        exit_date = exit_date.strftime('%Y-%m-%d')
+
+        #畫圖
+        qf=cf.QuantFig(stock_kbar_range,title=stock_name,legend='top',name='kbar')
+        qf.add_volume()
+        qf.add_annotations( {'x': entry_date,'text': 'buy'})
+        qf.add_annotations( {'x': exit_date,'text': 'sell'} )
+        qf.add_ema()
+        qf.add_trendline(entry_date,exit_date,on='close')
+        qf.iplot()
+
+def co_trade_visual(stock_name,all_trades,kbar_df,day_range):
+    stock_kbar = co_get_stock_kbar(stock_name,kbar_df) #3.選取指定股票的kbar
+    stock_trades = get_stock_trades(stock_name,all_trades) #4.選取指定股票交易紀錄
+    co_plot_trade_fig(stock_name,stock_trades,stock_kbar,day_range) #5. 印出指定的股票所有交易紀錄
+
