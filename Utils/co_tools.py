@@ -240,7 +240,7 @@ def co_plot_trade_fig(stock_name,stock_trades,stock_kbar,day_range):
 
         #進出場區間往左擴張day_range,往右擴張day_range/3(進場前的資訊比較重要)
         entry_date_range = entry_date-pd.Timedelta(days = day_range)
-        exit_date_range = entry_date+pd.Timedelta(days = day_range/3)
+        exit_date_range = exit_date+pd.Timedelta(days = day_range/3)
 
         #節選出想要印出的股票區間
         stock_kbar_range = pd.DataFrame(stock_kbar[entry_date_range.strftime('%Y-%m-%d'):exit_date_range.strftime('%Y-%m-%d')])
