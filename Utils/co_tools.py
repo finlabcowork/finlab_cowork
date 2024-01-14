@@ -274,6 +274,8 @@ def co_eps_predict_simple(stock_name,month_revenue_pred,gross_profit_ratio_pred)
     gross_profit = co_get('financial_statement:營業毛利')
     gross_profit_ratio = co_get('fundamental_features:營業毛利率')
     eps = co_get('financial_statement:每股盈餘')
+    monthly_revenue = co_get('monthly_revenue:當月營收')
+    
     
     #合併df
     revenue_gross_eps_concat = pd.concat([revenue_quarter[stock_name],gross_profit[stock_name],gross_profit_ratio[stock_name],eps[stock_name]],axis=1)
@@ -281,6 +283,19 @@ def co_eps_predict_simple(stock_name,month_revenue_pred,gross_profit_ratio_pred)
 
     #基礎資料
     print("目前最新資料為: ",revenue_gross_eps_concat.index[-1],"查詢個股為:",stock_name)
+    
+    #營收圖表,觀察歷史變動率與是否適合
+    coefficient_of_variation = monthly_revenue[stock_name].std()/monthly_revenue[stock_name].mean()
+    coefficient_of_variation_TW_mean = (monthly_revenue.dropna(axis=1).std()/monthly_revenue.dropna(axis=1).mean()).mean()
+    coefficient_pr = round((1-sum(monthly_revenue.dropna(axis=1).std()/monthly_revenue.dropna(axis=1).mean()>coefficient_of_variation)/monthly_revenue.dropna(axis=1).shape[1])*100,2)
+    
+    fig = px.line(monthly_revenue[stock_name].reset_index(), x='date', y="2330",title = stock_name+"營收變化")
+    fig.show()
+    
+    
+    print("營收變異係數為",round(coefficient_of_variation,3))
+    print("台股營收平均變異係數為",round(coefficient_of_variation_TW_mean,3))
+    print("此股票營收波動度大於"+str(coefficient_pr)+"%台灣股票")
     print("過去四個月,"+'平均營收為: '+str((revenue_gross_eps_concat['revenue_quarter'][-1]/4/100000))+"億元")
     print("過去四個月,"+'毛利為: ',str(round(revenue_gross_eps_concat['gross_profit_ratio'][-1],2)),"%")
     print("-------------------------------------------------------------------------------------------------------------")
@@ -368,6 +383,6 @@ def co_eps_predict_simple(stock_name,month_revenue_pred,gross_profit_ratio_pred)
     pe_ratio = close[stock_name][-1]/eps_pred_year
     eps_growth_ratio_quarterly =  eps_pred_quarterly/eps_4y[-1:]["eps"][0]-1
     
-    pred_df = pd.DataFrame([eps_pred_month,eps_pred_quarterly,eps_pred_year,pe_ratio,round(eps_growth_ratio_quarterly*100,2)]).transpose()
-    pred_df.columns = ["預估月eps","預估季eps", "預估年eps","預估本益比","預估季eps成長率(%)"]
+    pred_df = pd.DataFrame([coefficient_of_variation,coefficient_of_variation_TW_mean,coefficient_pr,eps_pred_month,eps_pred_quarterly,eps_pred_year,pe_ratio,round(eps_growth_ratio_quarterly*100,2)]).transpose()
+    pred_df.columns = ["營收變異係數","台股營收平均變異係數","營收變異係數pr值(該公司營收變異大於多少%公司)","預估月eps","預估季eps", "預估年eps","預估本益比","預估季eps成長率(%)"]
     return pred_df
