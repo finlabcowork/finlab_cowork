@@ -289,7 +289,7 @@ def co_eps_predict_simple(stock_name,month_revenue_pred,gross_profit_ratio_pred)
     coefficient_of_variation_TW_mean = (monthly_revenue.dropna(axis=1).std()/monthly_revenue.dropna(axis=1).mean()).mean()
     coefficient_pr = round((1-sum(monthly_revenue.dropna(axis=1).std()/monthly_revenue.dropna(axis=1).mean()>coefficient_of_variation)/monthly_revenue.dropna(axis=1).shape[1])*100,2)
     
-    fig = px.line(monthly_revenue[stock_name].reset_index(), x='date', y="2330",title = stock_name+"營收變化")
+    fig = px.line(monthly_revenue[stock_name].reset_index(), x='date', y=stock_name,title = stock_name+"營收變化")
     fig.show()
     
     
